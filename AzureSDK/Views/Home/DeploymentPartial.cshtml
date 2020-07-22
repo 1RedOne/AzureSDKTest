@@ -1,0 +1,42 @@
+﻿@model AzureSDK.Models.ArmDeployment
+
+<div>
+    <h4>ArmDeployment @Model.DeploymentName</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.DeploymentName)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.DeploymentName)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.CorrelationId)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.CorrelationId)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.ProvisioningState)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.ProvisioningState)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.ResourceGroupName)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.ResourceGroupName)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Timestamp)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Timestamp)
+        </dd>
+    </dl>    
+    @foreach (DeploymentOp operation in Model.DeploymentOps)
+    {
+        Html.RenderPartial("DeploymentOpPartial", operation);
+    }
+</div>

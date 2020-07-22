@@ -1,0 +1,46 @@
+﻿@using Newtonsoft.Json;
+@using AzureSDK.Models;
+@using Microsoft.Azure.Management.ResourceManager.Fluent;
+@model AzureSDK.Models.ArmDeployment
+
+@{
+    ViewData["Title"] = "Deployment Details";
+}
+@{JsonSerializerSettings loopHandler = new JsonSerializerSettings()
+    {
+        ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
+    }; }
+<script src="~/js/codemirror.js"></script>
+<link href="~/css/codemirror.css" rel="stylesheet" />
+<script src="~/js/javascript.js"></script>
+
+<h1>Details for deployment @Model.DeploymentName</h1>
+<h4>@Model.CorrelationId</h4>
+
+@Html.Partial("DeploymentPartial")
+
+<text>
+    <h4>
+        ArmDeployment Object as JSON
+    </h4>
+</text>
+
+<textarea id="ArmTemplate">
+        @Newtonsoft.Json.JsonConvert.SerializeObject(Model, Formatting.Indented, loopHandler);
+</textarea>
+
+<text>
+    <h4>
+        IDeployment Object as JSON
+    </h4>
+</text>
+
+<textarea id="ArmTemplate2">
+            @Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.DeploymentSourceObject, Formatting.Indented, loopHandler);
+    </textarea>
+
+<script>var myCodeMirror = CodeMirror.fromTextArea(document.getElementById('ArmTemplate'));</script>
+<script>var myCodeMirror = CodeMirror.fromTextArea(document.getElementById('ArmTemplate2'));</script>
+<div>    
+    <a asp-action="ListDeployments">Back to List</a>
+</div>

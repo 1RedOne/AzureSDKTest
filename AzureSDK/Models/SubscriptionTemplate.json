@@ -1,0 +1,29 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "rgNamePrefix": {
+      "defaultValue": "ham",
+      "type": "string"
+    },    
+    "instanceCount": {
+      "type": "int",
+      "defaultValue": 2
+    }
+  },
+  "variables": {},
+  "resources": [
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2019-10-01",
+      "location": "eastus",
+      "name": "[concat(parameters('rgNamePrefix'), copyIndex())]",
+      "copy": {
+        "name": "rgCopy",
+        "count": "[parameters('instanceCount')]"
+      },
+      "properties": {}
+    }
+  ],
+  "outputs": {}
+}

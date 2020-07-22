@@ -1,0 +1,59 @@
+﻿@model IEnumerable<AzureSDK.Models.ArmDeployment>
+
+@{
+    ViewData["Title"] = "ListDeployments";
+}
+
+<h1>ListDeployments</h1>
+
+@*<p>
+        <a asp-action="Create">Create New</a>
+    </p>*@
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.DeploymentName)
+            </th>
+
+            <th>
+                @Html.DisplayNameFor(model => model.ProvisioningState)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.ResourceGroupName)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Timestamp)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Template)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.DeploymentName)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.ProvisioningState)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.ResourceGroupName)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Timestamp)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Template)
+                </td>
+                <td>
+                    @Html.ActionLink("Details", "Details", new { name = item.DeploymentName })
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

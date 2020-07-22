@@ -1,0 +1,67 @@
+﻿@model AzureLoginFields
+@{
+    ViewData["Title"] = "Home Page";
+}        
+<style>
+    pre {
+        margin-left: 15px;
+    }
+</style>
+
+
+<div class="text-center">
+    <h1 class="display-4">FoxDeploy Azure SDK Test Platform</h1>
+    <p>Written in <a href="https://docs.microsoft.com/aspnet/core">ASP.NET Core</a>.</p>
+</div>
+<h3>How to get started</h3>
+
+<p>Sign into <a href="https://ms.portal.azure.com/">the Azure Portal</a>, then launch the Azure Cloud Shell, then run the following command <pre>az account show</pre></p>
+
+<p>If your desired subscription isn't shown, run <pre>az account set -s <name or ID of subscription></pre></p>
+
+<p>Next, run the following command to make a new SPN and get back the info we will need </p>
+
+<pre>
+az ad sp create-for-rbac --sdk-auth
+</pre>
+
+<p>You will get a jsonResult back, place these into the matching fields in Models\LoginInfo.json.</p>
+
+<h4 id="loginHeader">Current Settings</h4>
+<pre id="loginSettings" class="loginSettings">
+    @ViewBag.loginJson
+</pre>
+<div id="errorModal" style="display:none">
+    <h3>Need to add login info</h3>
+    <p><b>Update your login info</b> in Models\loginInfo.json</p>
+</div>
+
+<p>For additional info, refer to these docs: <a href="https://docs.microsoft.com/en-us/dotnet/azure/authentication">Understanding Azure Authentication</a></p>
+
+
+@if (Model.ClientId == "--")
+{
+    <text>
+        <script>
+            $(".loginSettings").notify("No settings found for LoginInfo.json", "warning");
+            document.querySelector(".loginSettings").style.backgroundColor = "palegoldenrod";
+            document.querySelector("#loginHeader").textContent = "Current Settings - ❌";
+            document.querySelector("#errorModal").style.display = "block"
+        </script>
+    </text>
+}
+else
+{
+    <script>
+        $(".loginSettings").notify("Login Settings Found :)", "success");
+        
+        document.querySelector(".loginSettings").style.backgroundColor = "lightgreen";
+        document.querySelector("#loginHeader").textContent = "Current Settings - ✔";
+    </script>
+}
+
+<h3>Pages</h3>
+<p><b>Azure ARM Test </b>allows you to test Resource and Subscription scope ARM Deployments against your subscription</p>
+<p><b>Deployment List</b> show all ARM Deployments for your current subscription</p>
+<p><b>Azure Fail </b>allows you to test error scenarios</p>
+
