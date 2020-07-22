@@ -6,25 +6,16 @@
     using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
-
+    
     using AzureSDK.Models;
-    using Azure;
-    using Azure.Identity;
-
-    //using Azure.ResourceManager.Resources.Models;
-
     using Microsoft.AspNetCore.Mvc;
-    using Microsoft.Azure.Management.Fluent;    
+    using Microsoft.Azure.Management.Fluent;
     using Microsoft.Azure.Management.ResourceManager.Fluent;
     using Microsoft.Azure.Management.ResourceManager.Fluent.Core.ResourceActions;
-    using Microsoft.Extensions.Logging;
-    //using Newtonsoft.Json;
-    using Microsoft.Azure.Management.ResourceManager.Fluent.Authentication;
-    using Microsoft.Azure.Management.ResourceManager.Fluent.Core;
-    using Microsoft.Azure.Management.AppService.Fluent.Models;
     using Microsoft.Azure.Management.ResourceManager.Models;
-    //using System.Text.Json;
-    using Newtonsoft.Json;
+    using Microsoft.Extensions.Logging;
+    
+    using Newtonsoft.Json;    
 
     public class HomeController : Controller
     {
@@ -82,23 +73,9 @@
         [HttpPost]
         public async Task<IActionResult> AzureSubscription(string ok = "123")
         {
-            string subscriptionTemplate = System.IO.File.ReadAllText(subscribeTemplatePath);
-            //get azure subscription client
+            string subscriptionTemplate = System.IO.File.ReadAllText(subscribeTemplatePath);            
 
             var repo = new ResourceManagementRepo();
-
-            ////myResourceManagementClient.Deployments.
-            //var myMode = Microsoft.Azure.Management.ResourceManager.Fluent.Models.DeploymentMode.Incremental;
-            //var deployment = new Deployment
-            //{
-            //    Properties = new DeploymentProperties
-            //    {
-            //        Mode = DeploymentMode.Incremental,
-            //        Template= subscriptionTemplate,
-            //        Parameters = "{}"
-            //    }
-            //};
-            //myResourceManagementClient.Deployments.
 
             var deploymentExtended = await repo.CreateSubscriptionDeployment();
             var armDeployment = new ArmDeployment(
@@ -110,6 +87,22 @@
                     deploymentExtended);
             ViewBag.DeploymentSourceObject = deploymentExtended;
             return View("Details", armDeployment);
+        }
+
+        public async Task<IActionResult> SubscriptionDetails()
+        {
+            var repo = new ResourceManagementRepo();
+            var deploymentExtended = repo.GetAtSubscriptionScope("my123", waitForCompletion: true);
+            var armDeployment = new ArmDeployment(
+                    deploymentExtended.Id,
+                    deploymentExtended.Properties.Timestamp,
+                    deploymentExtended.Properties.ProvisioningState,
+                    null,
+                    deploymentExtended.Name,
+                    deploymentExtended);
+            ViewBag.DeploymentSourceObject = deploymentExtended;
+            return View("Details", armDeployment);
+
         }
 
         [HttpPost]
@@ -255,13 +248,6 @@
             {
                 ViewBag.Error = "Some shit broke";
             }
-
-            //var list = await azure.Deployments.GetByIdAsync("a7bfc1b6-6700-44b4-8658-e8b549f02911");
-            //var list = azure.Deployments.GetByName("someTest1234");
-
-            //List<ArmDeployment> deployments = new List<ArmDeployment>();
-            //deployments.Add(new ArmDeployment(list.CorrelationId, list.Timestamp, list.ProvisioningState, list.ResourceGroupName, list.Name, list));
-            //ViewBag.Deployments = deployments;
 
             return View();
         }

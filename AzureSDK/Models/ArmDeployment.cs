@@ -73,18 +73,18 @@
             this.DeploymentName = DeploymentName;
             var allDeployments = deployment.Properties.OutputResources;
             this.Template = deployment.Properties.TemplateHash;
-            //foreach (var h in allDeployments)
-            //{
-            //    var thisDeployment = new DeploymentOp()
-            //    {
-            //        ProvisioningState = deployment.Properties
-            //        StatusMessage = h.StatusCode,
-            //        Id = h.TargetResource?.Id,
-            //        ResourceName = h.TargetResource?.ResourceName,
-            //        ResourceType = h.TargetResource?.ResourceType
-            //    };
-            //    this.DeploymentOps.Add(thisDeployment);
-            //}
+            foreach (var h in allDeployments)
+            {
+                var thisDeployment = new DeploymentOp()
+                {
+                    ProvisioningState = null,
+                    StatusMessage = null,
+                    Id = h.Id,
+                    ResourceName = null,
+                    ResourceType = null
+                };
+                this.DeploymentOps.Add(thisDeployment);
+            }
         }
     }
 
