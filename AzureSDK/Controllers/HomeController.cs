@@ -40,6 +40,13 @@
             return View(logininfo);
         }
 
+        //public async Task<IActionResult> ListDeployments()
+        //{
+        //    var client = GetAzureClient();
+        //    var list = await client.Deployments.ListByResourceGroupAsync("srofoxtestrg07161");
+        //    return View(list);
+        //}
+
         [HttpGet]
         public IActionResult DeploymentTest()
         {
@@ -71,9 +78,29 @@
         }
 
         [HttpPost]
-        public async Task<IActionResult> AzureSubscription(string ok = "123")
+        public async Task<IActionResult> FluentAzureSubscription(string ok = "123")
         {
-            string subscriptionTemplate = System.IO.File.ReadAllText(subscribeTemplatePath);            
+            var azureClientRepo = new AzureDeploymentClient();
+            //testnew method
+            var deploymentExtendedInner = await azureClientRepo.NewSubscriptionDeployment();
+            var armDeployment = new ArmDeployment(
+                    deploymentExtendedInner.Id,
+                    deploymentExtendedInner.Properties.Timestamp,
+                    deploymentExtendedInner.Properties.ProvisioningState,
+                    null,
+                    deploymentExtendedInner.Name,
+                    deploymentExtendedInner);
+            ViewBag.DeploymentSourceObject = deploymentExtendedInner;
+            ViewBag.DeploymentSourceObjectType = deploymentExtendedInner.GetType().Name;
+            ViewBag.DeploymentType = "Azure Flient Subscription Deployment";
+            return View("Details", armDeployment);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ResourceManagementAzureSubscription(string ok = "123")
+        {
+
+            string subscriptionTemplate = System.IO.File.ReadAllText(subscribeTemplatePath);
 
             var repo = new ResourceManagementRepo();
 
@@ -85,7 +112,9 @@
                     null,
                     deploymentExtended.Name,
                     deploymentExtended);
+            ViewBag.DeploymentType = "Resource Management Client Deployment";
             ViewBag.DeploymentSourceObject = deploymentExtended;
+            ViewBag.DeploymentSourceObjectType = deploymentExtended.GetType().Name;
             return View("Details", armDeployment);
         }
 
@@ -108,33 +137,69 @@
         [HttpPost]
         public async Task<IActionResult> ArmResourceGroupDeployment(string ok)
         {
-            string template = System.IO.File.ReadAllText(templatePath);
-            var azure = GetAzureClient();              
-            var rg = azure.ResourceGroups
-                         .Define("srofoxtestrg07161")
-                         .WithRegion("West US");
-            //var rg = await resourcesManagementClient.ResourceGroups.CreateOrUpdateAsync("srofoxtestrg0716", new ResourceGroup("West US"));
+            string template = System.IO.File.ReadAllText(templatePath);            
+            var azureClientRepo = new AzureDeploymentClient();
+            //testnew method
+            var deploymentExtendedInner = await azureClientRepo.NewResourceGroupDeployment();
 
-            var t = await azure.Deployments.Define("someTest1234")
-                    .WithNewResourceGroup(rg)
-                    .WithTemplate(template).WithParameters("{}")
-                    .WithMode(Microsoft.Azure.Management.ResourceManager.Fluent.Models.DeploymentMode.Incremental)
-                    .CreateAsync(CancellationToken.None);
+            //var rg = azure.ResourceGroups
+            //             .Define("srofoxtestrg07161")
+            //             .WithRegion("West US");
+            ////var rg = await resourcesManagementClient.ResourceGroups.CreateOrUpdateAsync("srofoxtestrg0716", new ResourceGroup("West US"));
 
-            var deployment = t;
+            //var t = await azure.Deployments.Define("someTest1234")
+            //        .WithNewResourceGroup(rg)
+            //        .WithTemplate(template).WithParameters("{}")
+            //        .WithMode(Microsoft.Azure.Management.ResourceManager.Fluent.Models.DeploymentMode.Incremental)
+            //        .CreateAsync(CancellationToken.None);
+
+            var deployment = deploymentExtendedInner;
             var h = new ArmDeployment(
-                    deployment.CorrelationId,
-                    deployment.Timestamp,
-                    deployment.ProvisioningState,
+                    deployment.CorrelationId ?? "notProvided",
+                    deployment.Timestamp?? DateTime.Now,
+                    deployment.ProvisioningState?? "otherState",
                     deployment.ResourceGroupName,
                     deployment.Name,
                     deployment
                     );
-            ViewBag.Template =
-                        Newtonsoft.Json.JsonConvert.SerializeObject(t,
-                        Formatting.Indented, loopHandler);
+            //ViewBag.Template =
+            //            Newtonsoft.Json.JsonConvert.SerializeObject(deploymentExtendedInner,
+            //            Formatting.Indented, loopHandler);
             ViewBag.Deployed = true;
-            return View(t);
+            //TODO: redirect to details endpoint 
+            return View("Details", h);
+        }
+
+        private async Task<ArmDeployment> NewSubscriptionDeployment()
+        {
+            var azure = GetAzureClient();
+            var template = System.IO.File.ReadAllText(subscribeTemplatePath);
+
+            
+
+            Microsoft.Azure.Management.ResourceManager.Fluent.Models.DeploymentInner deploymentParam = new Microsoft.Azure.Management.ResourceManager.Fluent.Models.DeploymentInner()
+            {
+                Location = "westus",
+                Properties = new Microsoft.Azure.Management.ResourceManager.Fluent.Models.DeploymentProperties()
+                {
+                    Mode = Microsoft.Azure.Management.ResourceManager.Fluent.Models.DeploymentMode.Incremental,
+                    Template = template,
+                    Parameters = "{}"
+                }
+            };
+
+            Microsoft.Azure.Management.ResourceManager.Fluent.Models.DeploymentExtendedInner deployment = await azure.Deployments.Inner.CreateOrUpdateAtSubscriptionScopeAsync("dpA", deploymentParam);            
+            
+            var h = new ArmDeployment(
+                    deployment.Id,
+                    deployment.Properties.Timestamp,
+                    deployment.Properties.ProvisioningState,
+                    null,
+                    deployment.Name,
+                    deployment
+                    );
+
+            return h;
         }
 
         public async Task<IDeployment> AzureDeployment(ICreatable<IResourceGroup> rg, object template, string deploymentName = "someTest1234", string parameters = "{}")

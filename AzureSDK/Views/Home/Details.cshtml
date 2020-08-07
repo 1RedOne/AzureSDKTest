@@ -14,7 +14,7 @@
 <link href="~/css/codemirror.css" rel="stylesheet" />
 <script src="~/js/javascript.js"></script>
 
-<h1>Details for deployment @Model.DeploymentName</h1>
+<h1>@ViewBag.DeploymentType - @Model.DeploymentName</h1>
 <h4>@Model.CorrelationId</h4>
 
 @Html.Partial("DeploymentPartial")

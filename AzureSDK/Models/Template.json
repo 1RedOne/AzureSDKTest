@@ -23,21 +23,7 @@
       "properties": {
         "supportsHttpsTrafficOnly": true
       }
-    },
-    {
-      "name": "stephenscoolworkSpace",
-      "type": "Microsoft.OperationalInsights/workspaces",
-      "apiVersion": "2015-11-01-preview",
-      "location": "eastus",
-      "tags": {},
-      "properties": {
-        "sku": {
-          "name": "Free"
-        },
-        "retentionInDays": "7"
-      },
-      "resources": []
-    }
+    }    
   ],
   "outputs": {
     "storageEndpoint": {

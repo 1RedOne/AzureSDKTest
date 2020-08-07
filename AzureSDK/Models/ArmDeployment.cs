@@ -38,7 +38,8 @@
         public Object Template { get; }
 
         public List<DeploymentOp> DeploymentOps { get; set; }
-
+        
+        //RG deployment mode
         public ArmDeployment(string CorrelationId, DateTime? TimeStamp, string ProvisioningState, string ResourceGroupName, string DeploymentName, IDeployment deployment)
         {
             if (null == DeploymentOps) { this.DeploymentOps = new List<DeploymentOp>(); }
@@ -63,6 +64,7 @@
             }
         }
 
+        //Subscription deployment mode
         public ArmDeployment(string CorrelationId, DateTime? TimeStamp, string ProvisioningState, string ResourceGroupName, string DeploymentName, Microsoft.Azure.Management.ResourceManager.Models.DeploymentExtended deployment)
         {
             if (null == DeploymentOps) { this.DeploymentOps = new List<DeploymentOp>(); }
@@ -86,6 +88,31 @@
                 this.DeploymentOps.Add(thisDeployment);
             }
         }
+        //Fluent API COnversion mode
+        public ArmDeployment(string CorrelationId, DateTime? TimeStamp, string ProvisioningState, string ResourceGroupName, string DeploymentName, Microsoft.Azure.Management.ResourceManager.Fluent.Models.DeploymentExtendedInner deployment)
+        {
+            if (null == DeploymentOps) { this.DeploymentOps = new List<DeploymentOp>(); }
+            this.CorrelationId = CorrelationId;
+            this.ProvisioningState = ProvisioningState;
+            this.Timestamp = TimeStamp;
+            this.ResourceGroupName = ResourceGroupName;
+            this.DeploymentName = DeploymentName;
+            var allDeployments = deployment.Properties.Outputs;
+            this.Template = deployment.Properties.Template;
+            //foreach (var h in allDeployments)
+            //{
+            //    var thisDeployment = new DeploymentOp()
+            //    {
+            //        ProvisioningState = null,
+            //        StatusMessage = null,
+            //        Id = h.Id,
+            //        ResourceName = null,
+            //        ResourceType = null
+            //    };
+            //    this.DeploymentOps.Add(thisDeployment);
+            //}
+        }
+        
     }
 
    

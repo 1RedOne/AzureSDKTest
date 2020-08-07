@@ -1,0 +1,55 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "object"
+    },
+    "backupVault": {
+      "type": "Object"
+    },
+    "backupPolicyInfo": {
+      "type": "Object"
+    }
+  },
+  "variables": {
+    "scopeConfigurationName": "MicrosoftDefaultScopeConfig-Updates",
+    "configurationScopeKind": "SearchComputerGroup",
+    "configurationScopeInclude": "Updates__MicrosoftDefaultComputerGroup"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2015-11-01-preview",
+      "name": "[parameters('workspace').name]",
+      "location": "[parameters('workspace').location]"
+    },
+    {
+      "type": "Microsoft.RecoveryServices/vaults",
+      "apiVersion": "2016-06-01",
+      "name": "[parameters('backupVault').name]",
+      "location": "[parameters('backupVault').location]",
+      "sku": {
+        "name": "[parameters('backupVault').sku]",
+        "tier": "[parameters('backupVault').tier]"
+      },
+      "properties": {}
+    },
+    {
+      "type": "Microsoft.RecoveryServices/vaults/backupPolicies",
+      "apiVersion": "2016-06-01",
+      "name": "[concat(parameters('backupVault').name, '/', parameters('backupPolicyInfo').policyName)]",
+      "location": "[parameters('backupVault').location]",
+      "properties": {
+        "backupManagementType": "AzureIaasVM",
+        "instantRpRetentionRangeInDays": "[parameters('backupPolicyInfo').instantRpRetentionRangeInDays]",
+        "schedulePolicy": "[parameters('backupPolicyInfo').schedulePolicy]",
+        "retentionPolicy": "[parameters('backupPolicyInfo').retentionPolicy]",
+        "timeZone": "[parameters('backupPolicyInfo').timeZone]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.RecoveryServices/vaults/', parameters('backupVault').name)]"
+      ]
+    }
+  ]
+}

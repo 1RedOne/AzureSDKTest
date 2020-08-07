@@ -1,29 +1,95 @@
 ﻿{
-  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
-  "contentVersion": "1.0.0.0",
-  "parameters": {
-    "rgNamePrefix": {
-      "defaultValue": "ham",
-      "type": "string"
-    },    
-    "instanceCount": {
-      "type": "int",
-      "defaultValue": 2
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.1",
+  "parameters": {    
+    "autoProvisionSetting": {
+      "type": "string",
+      "defaultValue": "On",
+      "allowedValues": [
+        "On",
+        "Off"
+      ],
+      "metadata": {
+        "description": "Specify whether Auto Provisoning is turned on or off"
+      }
+    },
+    "virtualMachineTier": {
+      "type": "string",
+      "defaultValue": "Free",
+      "allowedValues": [
+        "Standard",
+        "Free"
+      ],
+      "metadata": {
+        "description": "Specifiy whether you want to enable Standard tier for Virtual Machine resource type"
+      }
+    },
+    "mcasIntegrationEnabled": {
+      "type": "bool",
+      "defaultValue": true,
+      "allowedValues": [
+        true,
+        false
+      ],
+      "metadata": {
+        "description": "Allow Microsoft Cloud App Security to access my data"
+      }
+    },
+    "wdatpIntegrationEnabled": {
+      "type": "bool",
+      "defaultValue": true,
+      "allowedValues": [
+        true,
+        false
+      ],
+      "metadata": {
+        "description": "Allow Windows Defender Advance Threat Protection to access my data"
+      }
     }
   },
-  "variables": {},
   "resources": [
     {
-      "type": "Microsoft.Resources/resourceGroups",
-      "apiVersion": "2019-10-01",
-      "location": "eastus",
-      "name": "[concat(parameters('rgNamePrefix'), copyIndex())]",
-      "copy": {
-        "name": "rgCopy",
-        "count": "[parameters('instanceCount')]"
-      },
-      "properties": {}
+      "type": "Microsoft.Security/workspaceSettings",
+      "apiVersion": "2017-08-01-preview",
+      "name": "default",
+      "properties": {
+        "workspaceId": "/subscriptions/cdd53a71-7d81-493d-bce6-224fec7223a9/resourceGroups/ham0/providers/Microsoft.OperationalInsights/workspaces/stephenscoolworkSpace",
+        "scope": "[subscription().id]"
+      }
+    },
+    {
+      "type": "Microsoft.Security/autoProvisioningSettings",
+      "apiVersion": "2017-08-01-preview",
+      "name": "default",
+      "properties": {
+        "autoProvision": "[parameters('autoProvisionSetting')]"
+      }
+    },
+    {
+      "type": "Microsoft.Security/pricings",
+      "apiVersion": "2018-06-01",
+      "name": "VirtualMachines",
+      "properties": {
+        "pricingTier": "[parameters('virtualMachineTier')]"
+      }
+    },
+    {
+      "type": "Microsoft.Security/settings",
+      "apiVersion": "2019-01-01",
+      "name": "MCAS",
+      "kind": "DataExportSettings",
+      "properties": {
+        "enabled": "[parameters('mcasIntegrationEnabled')]"
+      }
+    },
+    {
+      "type": "Microsoft.Security/settings",
+      "apiVersion": "2019-01-01",
+      "name": "WDATP",
+      "kind": "DataExportSettings",
+      "properties": {
+        "enabled": "[parameters('wdatpIntegrationEnabled')]"
+      }
     }
-  ],
-  "outputs": {}
+  ]
 }

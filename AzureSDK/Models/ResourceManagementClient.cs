@@ -66,22 +66,38 @@ namespace AzureSDK.Models
         public DeploymentExtended GetAtSubscriptionScope(string name, bool waitForCompletion = false)
         {
 
-            var credentials = Microsoft.Azure.Management.ResourceManager.Fluent.SdkContext.AzureCredentialsFactory.FromServicePrincipal(logininfo.ClientId, logininfo.ClientSecret, logininfo.TenantId,
-                    Microsoft.Azure.Management.ResourceManager.Fluent.AzureEnvironment.AzureGlobalCloud);
-
-            var r = new ResourceManagementClient(credentials);            
-            r.SubscriptionId = logininfo.SubscriptionId;
             
-            var deploymentExtended  = r.Deployments.GetAtSubscriptionScope(name);
+            var rmc = getResourceManagementClient();
+            var deploymentExtended  = rmc.Deployments.GetAtSubscriptionScope(name);
             if (waitForCompletion)
             {
                 while (deploymentExtended.Properties.ProvisioningState == "Running")
                 {
-                    deploymentExtended = r.Deployments.GetAtSubscriptionScope(name);
+                    deploymentExtended = rmc.Deployments.GetAtSubscriptionScope(name);
                     Thread.Sleep(500);
                 }
             }
+
+            //var ops = r.DeploymentOperations.GetAtSubscriptionScope(name, deploymentExtended.Properties.CorrelationId);
             return deploymentExtended;   
+        }
+
+        //private DeploymentOperation GetDeploymentOperationInfo(DeploymentExtended deployment)
+        //{
+
+        //}
+
+        private IResourceManagementClient getResourceManagementClient()
+        {
+
+            var credentials = Microsoft.Azure.Management.ResourceManager.Fluent.SdkContext.AzureCredentialsFactory.FromServicePrincipal(logininfo.ClientId, logininfo.ClientSecret, logininfo.TenantId,
+                Microsoft.Azure.Management.ResourceManager.Fluent.AzureEnvironment.AzureGlobalCloud);
+
+            var resourceClient = new ResourceManagementClient(credentials)
+            {
+                SubscriptionId = logininfo.SubscriptionId
+            };
+            return resourceClient;
         }
     }
 }

@@ -1,0 +1,255 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "value": {
+        "name": "test1aihaw",
+        "location": "EastUS",
+        "resourceGroup": "demoautomanage"
+      }
+    },
+    "automationAccount": {
+      "type": "Object"
+    },
+    "backupVault": {
+      "type": "Object"
+    },
+    "backupPolicyInfo": {
+      "type": "Object",
+      "defaultValue": {
+        "policyName": "dailyBackupPolicy",
+        "instantRpRetentionRangeInDays": 2,
+        "retentionPolicy": {
+          "dailySchedule": {
+            "retentionTimes": [
+              "2017-01-26T00:00:00Z"
+            ],
+            "retentionDuration": {
+              "count": 180,
+              "durationType": "Days"
+            }
+          },
+          "retentionPolicyType": "LongTermRetentionPolicy"
+        },
+        "schedulePolicy": {
+          "scheduleRunFrequency": "Daily",
+          "scheduleRunTimes": [
+            "2017-01-26T00:00:00Z"
+          ],
+          "schedulePolicyType": "SimpleSchedulePolicy"
+        },
+        "timeZone": "UTC"
+      }
+    }
+  },
+  "variables": {
+    "scopeConfigurationName": "MicrosoftDefaultScopeConfig-Updates",
+    "configurationScopeKind": "SearchComputerGroup",
+    "configurationScopeInclude": "Updates__MicrosoftDefaultComputerGroup"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.RecoveryServices/vaults",
+      "apiVersion": "2016-06-01",
+      "name": "[parameters('backupVault').name]",
+      "location": "[parameters('backupVault').location]",
+      "sku": {
+        "name": "[parameters('backupVault').sku]",
+        "tier": "[parameters('backupVault').tier]"
+      },
+      "properties": {}
+    },
+    {
+      "type": "Microsoft.RecoveryServices/vaults/backupPolicies",
+      "apiVersion": "2016-06-01",
+      "name": "[concat(parameters('backupVault').name, '/', parameters('backupPolicyInfo').policyName)]",
+      "location": "[parameters('backupVault').location]",
+      "properties": {
+        "backupManagementType": "AzureIaasVM",
+        "instantRpRetentionRangeInDays": "[parameters('backupPolicyInfo').instantRpRetentionRangeInDays]",
+        "schedulePolicy": "[parameters('backupPolicyInfo').schedulePolicy]",
+        "retentionPolicy": "[parameters('backupPolicyInfo').retentionPolicy]",
+        "timeZone": "[parameters('backupPolicyInfo').timeZone]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.RecoveryServices/vaults/', parameters('backupVault').name)]"
+      ]
+    },
+    {
+      "type": "Microsoft.Automation/automationAccounts",
+      "apiVersion": "2015-10-31",
+      "name": "[parameters('automationAccount').name]",
+      "location": "[parameters('automationAccount').location]",
+      "properties": {
+        "sku": {
+          "name": "[parameters('automationAccount').sku]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2015-11-01-preview",
+      "name": "[parameters('workspace').name]",
+      "location": "[parameters('workspace').location]"
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/configurationScopes",
+      "apiVersion": "2015-11-01-preview",
+      "name": "[concat(parameters('workspace').name, '/', variables('scopeConfigurationName'))]",
+      "location": "[parameters('workspace').location]",
+      "kind": "[variables('configurationScopeKind')]",
+      "properties": {
+        "Include": "[variables('configurationScopeInclude')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspace').name)]"
+      ]
+    },
+    {
+      "type": "Microsoft.OperationsManagement/solutions",
+      "apiVersion": "2015-11-01-preview",
+      "name": "[concat('Updates(', parameters('workspace').name, ')')]",
+      "location": "[parameters('workspace').location]",
+      "plan": {
+        "name": "[concat('Updates(', parameters('workspace').name, ')')]",
+        "product": "OMSGallery/Updates",
+        "promotionCode": "",
+        "publisher": "Microsoft"
+      },
+      "properties": {
+        "workspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspace').name)]",
+        "configurations": {
+          "Name": "SolutionTargeting",
+          "Value": "[variables('scopeConfigurationName')]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces/configurationScopes', parameters('workspace').name, variables('scopeConfigurationName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.OperationsManagement/solutions",
+      "apiVersion": "2015-11-01-preview",
+      "name": "[concat('ChangeTracking(', parameters('workspace').name, ')')]",
+      "location": "[parameters('workspace').location]",
+      "plan": {
+        "name": "[concat('ChangeTracking(', parameters('workspace').name, ')')]",
+        "product": "OMSGallery/ChangeTracking",
+        "promotionCode": "",
+        "publisher": "Microsoft"
+      },
+      "properties": {
+        "workspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspace').name)]",
+        "configurations": {
+          "Name": "SolutionTargeting",
+          "Value": "[variables('scopeConfigurationName')]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspace').name)]"
+      ]
+    },
+    {
+      "type": "Microsoft.OperationsManagement/solutions",
+      "apiVersion": "2015-11-01-preview",
+      "name": "[concat('VMInsights', '(', parameters('workspace').name,')')]",
+      "location": "[parameters('workspace').location]",
+      "plan": {
+        "name": "[concat('VMInsights', '(',parameters('workspace').name,')')]",
+        "publisher": "Microsoft",
+        "product": "OMSGallery/VMInsights",
+        "promotionCode": ""
+      },
+      "properties": {
+        "workspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces/', parameters('workspace').name)]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces/',parameters('workspace').name)]"
+      ]
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/linkedServices",
+      "apiVersion": "2015-11-01-preview",
+      "name": "[concat(parameters('workspace').name, '/' , 'Automation')]",
+      "location": "[parameters('workspace').location]",
+      "properties": {
+        "resourceId": "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccount').name)]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspace').name)]",
+        "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccount').name)]"
+      ]
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+      "apiVersion": "2015-11-01-preview",
+      "name": "[Concat(parameters('workspace').name, '/ChangeTrackingDataTypeConfiguration_Software')]",
+      "location": "[parameters('workspace').location]",
+      "kind": "ChangeTrackingDataTypeConfiguration",
+      "properties": {
+        "DataTypeId": "Software",
+        "Enabled": "true"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationsManagement/solutions', concat('ChangeTracking(', parameters('workspace').name, ')'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+      "apiVersion": "2015-11-01-preview",
+      "name": "[Concat(parameters('workspace').name, '/ChangeTrackingDataTypeConfiguration_WindowsServices')]",
+      "location": "[parameters('workspace').location]",
+      "kind": "ChangeTrackingDataTypeConfiguration",
+      "properties": {
+        "DataTypeId": "WindowsServices",
+        "Enabled": "true"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationsManagement/solutions', concat('ChangeTracking(', parameters('workspace').name, ')'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+      "apiVersion": "2015-11-01-preview",
+      "name": "[Concat(parameters('workspace').name, '/ChangeTrackingDataTypeConfiguration_Daemons')]",
+      "location": "[parameters('workspace').location]",
+      "kind": "ChangeTrackingDataTypeConfiguration",
+      "properties": {
+        "DataTypeId": "Daemons",
+        "Enabled": "true"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationsManagement/solutions', concat('ChangeTracking(', parameters('workspace').name, ')'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+      "apiVersion": "2015-11-01-preview",
+      "name": "[Concat(parameters('workspace').name, '/ChangeTrackingDataTypeConfiguration_Files')]",
+      "location": "[parameters('workspace').location]",
+      "kind": "ChangeTrackingDataTypeConfiguration",
+      "properties": {
+        "DataTypeId": "Files",
+        "Enabled": "true"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationsManagement/solutions', concat('ChangeTracking(', parameters('workspace').name, ')'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+      "apiVersion": "2015-11-01-preview",
+      "name": "[Concat(parameters('workspace').name, '/ChangeTrackingDataTypeConfiguration_Registry')]",
+      "location": "[parameters('workspace').location]",
+      "kind": "ChangeTrackingDataTypeConfiguration",
+      "properties": {
+        "DataTypeId": "Registry",
+        "Enabled": "true"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationsManagement/solutions', concat('ChangeTracking(', parameters('workspace').name, ')'))]"
+      ]
+    }
+  ]
+}
