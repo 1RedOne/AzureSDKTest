@@ -8,6 +8,7 @@ using Microsoft.Azure.Management.ResourceManager;
 using Microsoft.Azure.Management.ResourceManager.Fluent.Authentication;
 using Microsoft.Azure.Management.ResourceManager.Models;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace AzureSDK.Models
 {
@@ -34,12 +35,13 @@ namespace AzureSDK.Models
 
         public async Task<DeploymentExtended> CreateSubscriptionDeployment()
         {
-            
+            string subscriptionParamPath = Path.Combine(Directory.GetCurrentDirectory(), "Models", "SubscriptionTemplateParams.json");
             var credentials = Microsoft.Azure.Management.ResourceManager.Fluent.SdkContext.AzureCredentialsFactory.FromServicePrincipal(logininfo.ClientId, logininfo.ClientSecret, logininfo.TenantId,
                     Microsoft.Azure.Management.ResourceManager.Fluent.AzureEnvironment.AzureGlobalCloud);                        
 
             var template = File.ReadAllText(subscribeTemplatePath);
             var r = new ResourceManagementClient(credentials);
+            var jobj = JObject.Parse(File.ReadAllText(subscriptionParamPath));
             var deployment = new Deployment
             {
                 Location = "eastus",
@@ -47,11 +49,11 @@ namespace AzureSDK.Models
                 {
                     Mode = DeploymentMode.Incremental,
                     Template = template,//subscriptionTemplate,
-                    Parameters = "{}"
+                    Parameters = jobj
                 }
             };
             r.SubscriptionId = logininfo.SubscriptionId;            
-            var h = await r.Deployments.BeginCreateOrUpdateAtSubscriptionScopeAsync("my123", deployment);
+            var h = await r.Deployments.BeginCreateOrUpdateAtSubscriptionScopeAsync("thankMichele", deployment);
 
             //return h;
 

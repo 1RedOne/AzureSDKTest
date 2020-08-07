@@ -19,9 +19,8 @@ namespace AzureSDK.Models
     {
         private AzureLoginFields logininfo = new AzureLoginFields();
         private string subscribeTemplatePath = Path.Combine(Directory.GetCurrentDirectory(), "Models", "SubscriptionTemplate.json");
-        private string rgTemplatePath = Path.Combine(Directory.GetCurrentDirectory(), "Models", "Template.json");
-        private string hassanTemplatePath = Path.Combine(Directory.GetCurrentDirectory(), "Models", "hassanTestTemplate.json");
-        private string hassanParams = Path.Combine(Directory.GetCurrentDirectory(), "Models", "templateparams.json");
+        private string resouceGroupTemplate = Path.Combine(Directory.GetCurrentDirectory(), "Models", "resouceGroupTemplate.json");
+        private string resouceGroupTemplateParams = Path.Combine(Directory.GetCurrentDirectory(), "Models", "resouceGroupTemplateParams.json");
 
         private IAzure GetAzureClient()
         {
@@ -48,9 +47,9 @@ namespace AzureSDK.Models
             var rgName = "sroTemplateTest2";
             //var template = System.IO.File.ReadAllText(rgTemplatePath);
             
-            var template = System.IO.File.ReadAllText(hassanTemplatePath, Encoding.UTF8);
-            var parms = System.IO.File.ReadAllText(hassanParams, Encoding.UTF8);
-            var jobj = JObject.Parse(File.ReadAllText(hassanParams));
+            var template = System.IO.File.ReadAllText(resouceGroupTemplate, Encoding.UTF8);
+            var parms = System.IO.File.ReadAllText(resouceGroupTemplateParams, Encoding.UTF8);
+            var jobj = JObject.Parse(File.ReadAllText(resouceGroupTemplateParams));
             var azure = GetAzureClient();
             var objectFromJson = JsonConvert.SerializeObject(jobj);
             
