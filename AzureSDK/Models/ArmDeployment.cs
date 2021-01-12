@@ -113,6 +113,14 @@
             //}
         }
         
+        public ArmDeployment(DeploymentOperationError deploymentOperation)
+        {
+            this.ProvisioningState = "CONFLICT";
+            this.ResourceGroupName = deploymentOperation.StatusCode;
+            this.Template = deploymentOperation.StatusMessage;
+            this.DeploymentName = deploymentOperation.TargetResource;
+
+        }
     }
 
    

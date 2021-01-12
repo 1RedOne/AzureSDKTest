@@ -13,6 +13,8 @@ namespace AzureSDK.Models
         public string ClientSecret;
         public string TenantId;
         public string SubscriptionId;
+        public string OmsWorkSpaceID;
+        public string OmsSharedKey;
 
     }
 }

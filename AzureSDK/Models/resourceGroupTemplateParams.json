@@ -1,0 +1,46 @@
+﻿{
+  "workSpacename": {
+    "value": "myCoolTestValue"
+    },
+    "workspace": {
+      "value": {
+        "name": "test51aihaerw",
+        "location": "EastUS",
+        "resourceGroup": "demoautomanage"
+      }
+    },
+    "backupVault": {
+      "value": {
+        "name": "defaultBackupVault-aihaihaw55a2635b36-EUS",
+        "location": "eastus",
+        "sku": "RS0",
+        "tier": "Standard"
+      }
+    },
+    "backupPolicyInfo": {
+      "value": {
+        "policyName": "dailyPolicyTest",
+        "instantRpRetentionRangeInDays": "2",
+        "retentionPolicy": {
+          "dailySchedule": {
+            "retentionTimes": [
+              "2020-08-06T00:00:00-04:00"
+            ],
+            "retentionDuration": {
+              "count": 180,
+              "durationType": "Days"
+            }
+          },
+          "retentionPolicyType": "LongTermRetentionPolicy"
+        },
+        "schedulePolicy": {
+          "scheduleRunFrequency": "Daily",
+          "scheduleRunTimes": [
+            "2020-08-06T00:00:00-04:00"
+          ],
+          "schedulePolicyType": "SimpleSchedulePolicy"
+        },
+        "timeZone": "UTC"
+      }
+    }
+  }
