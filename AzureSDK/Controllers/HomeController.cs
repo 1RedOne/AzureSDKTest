@@ -46,7 +46,7 @@
 
             var err = rmc.getErrors("testingetag", "testingetag");
 
-            var ret = new ArmDeployment(err.Result);
+            var ret = new ArmDeployment(err.Result[0]);
             return View("Details", ret);
             var deploymentExtendedInner = await azureClientRepo.NewResourceGroupDeployment(template,"testingetag");
 

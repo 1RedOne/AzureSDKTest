@@ -48,7 +48,7 @@
             this.Timestamp = TimeStamp;
             this.ResourceGroupName = ResourceGroupName;
             this.DeploymentName = DeploymentName;
-            var allDeployments = deployment.DeploymentOperations.List();
+            var allDeployments = deployment?.DeploymentOperations?.List();
             this.Template = deployment.Template;
             foreach (var h in allDeployments)
             {

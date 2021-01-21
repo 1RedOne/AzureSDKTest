@@ -1,6 +1,7 @@
 ﻿using Microsoft.Azure.Management.Automanage;
 using Microsoft.Azure.Management.Automanage.Models;
 using Microsoft.Azure.Management.ResourceManager.Fluent;
+using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -12,10 +13,15 @@ namespace AzureSDK.Models
 {
     public class AutoManagementRepo
     {
-        private AzureLoginFields logininfo = new AzureLoginFields();
+        private AzureLoginFields logininfo;//= new AzureLoginFields();
         private string subscribeTemplatePath = Path.Combine(Directory.GetCurrentDirectory(), "Models", "SubscriptionTemplate.json");
         private string resourceGroupTemplate = Path.Combine(Directory.GetCurrentDirectory(), "Models", "resourceGroupTemplate.json");
         private string resourceGroupTemplateParams = Path.Combine(Directory.GetCurrentDirectory(), "Models", "resourceGroupTemplateParams.json");
+
+        public AutoManagementRepo(IConfiguration configuration)
+        {
+            logininfo = new AzureLoginFields(configuration);
+        }
 
         private IAutomanageClient GetAutomanageClient()
         {

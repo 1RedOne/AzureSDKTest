@@ -1,0 +1,46 @@
+{
+    "profile": {
+      "value": "PROD"
+    },
+    "workspace": {
+      "value": {
+        "name": "DefaultWorkspace-cdd53a71-7d81-493d-bce6-224fec7223a9-EUS",
+        "location": "EastUS",
+        "resourceGroup": "DefaultResourceGroup-EUS",
+        "subscriptionid": "cdd53a71-7d81-493d-bce6-224fec7223a9"
+      }
+    },
+    "environmentResourceGroup": {
+      "value": "DefaultResourceGroup-EUS"
+    },
+    "environmentResourceGroupLocation": {
+      "value": "EastUS"
+    },
+    "mcasIntegrationEnabled": {
+      "value": false
+    },
+    "wdatpIntegrationEnabled": {
+      "value": false
+    },
+    "automationAccount": {
+      "value": {
+        "name": "Automate-cdd53a71-7d81-493d-bce6-224fec7223a9-EUS",
+        "location": "EastUS2",
+        "sku": "Basic",
+        "resourcegroup": "DefaultResourceGroup-EUS",
+        "subscriptionid": "cdd53a71-7d81-493d-bce6-224fec7223a9"
+      }
+    },
+    "automationDeployName": {
+      "value": "AM.Automation.20210119144957"
+    },
+    "dependenciesDeployName": {
+      "value": "AM.Dependencies.20210119144957"
+    },
+    "policyAssignmentDeployName": {
+      "value": "AM.PolicyAssignments.20210119144957"
+    },
+    "automationPolicyAssignmentDeployName": {
+      "value": "AM.Automation.PolicyAssignments.20210119144957"
+    }
+  }

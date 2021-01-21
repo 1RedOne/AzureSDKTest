@@ -12,16 +12,23 @@ using DeploymentExtendedInner = Microsoft.Azure.Management.ResourceManager.Fluen
 using System.Threading;
 using Newtonsoft.Json.Linq;
 using System.Text;
+using AzureSDKTests.Models;
+using Microsoft.Extensions.Configuration;
 
 namespace AzureSDK.Models
 {
     public class AzureDeploymentClient
     {
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        private AzureLoginFields logininfo = new AzureLoginFields();
+        private AzureLoginFields logininfo;// = new AzureLoginFields();
         private string subscribeTemplatePath = Path.Combine(Directory.GetCurrentDirectory(), "Models", "SubscriptionTemplate.json");
         private string resourceGroupTemplate = Path.Combine(Directory.GetCurrentDirectory(), "Models", "resourceGroupTemplate.json");
         private string resourceGroupTemplateParams = Path.Combine(Directory.GetCurrentDirectory(), "Models", "resourceGroupTemplateParams.json");
+
+        public AzureDeploymentClient(IConfiguration configuration)
+        {
+            logininfo = new AzureLoginFields(configuration);
+        }
 
         private IAzure GetAzureClient()
         {
@@ -43,7 +50,7 @@ namespace AzureSDK.Models
             return JsonConvert.DeserializeObject<AzureLoginFields>(jsonString);
         }
 
-        public async Task<ArmDeployment> NewResourceGroupDeployment(string template, string rgName = "sroTemplateTest")
+        public async Task<ArmDeployment> NewResourceGroupDeployment(string template, string deploymentName, string rgName = "sroTemplateTest")
         {
             var azure = GetAzureClient();
 
@@ -66,7 +73,7 @@ namespace AzureSDK.Models
                 {
                     //testing to exceptions
                     log.Info("about to create deployment!");
-                    var deploymentCreated2 = await azure.Deployments.Define("testingetag")
+                    var deploymentCreated2 = await azure.Deployments.Define(deploymentName)
                     .WithExistingResourceGroup(rg.Name)
                     .WithTemplate(template)
                     .WithParameters("{}")
@@ -80,7 +87,7 @@ namespace AzureSDK.Models
                     log.Error("ERROR CREATING deployment!", ex);
                 }
                 //valudate               
-                var deploymentCreated = await azure.Deployments.Define("hassantest2")
+                var deploymentCreated = await azure.Deployments.Define(deploymentName)
                     .WithNewResourceGroup(rg)
                     .WithTemplate(template)
                     .WithParameters("{}")
@@ -95,7 +102,7 @@ namespace AzureSDK.Models
             {
                 try
                 {
-                    var result = await azure.Deployments.Define("testingEtag")
+                    var result = await azure.Deployments.Define(deploymentName)
                         .WithExistingResourceGroup(rgName)
                         .WithTemplate(template)
                         .WithParameters("{}")
@@ -107,12 +114,14 @@ namespace AzureSDK.Models
                 }
                 catch(Exception ex)
                 {
-                    var t = ex.Data;
-                    var deploymentoperation = azure.Deployments.GetByName("testingEtag");
-                    var hhe = azure.Deployments.Inner.GetAsync("testingetag", "testingetag");
-                    //var val = new ArmDeployment(null, null, null, null, null, result);
-                    //  return val;
                     throw ex;
+                    //var t = ex.Data;
+                    //var deploymentoperation = azure.Deployments.GetByName(deploymentName);
+                    
+                    //var hhe = azure.Deployments.Inner.GetAsync(rgName, deploymentName);
+                    ////var val = new ArmDeployment(null, null, null, null, null, result);
+                    ////  return val;
+                    //throw ex;
                 }                
             }
             
@@ -145,6 +154,69 @@ namespace AzureSDK.Models
             return azureFluentSubscriptionDeployment;                
 
             
+        }
+
+        public async Task<DeploymentExtendedInner> NewSubscriptionDeployment(string template, string deploymentName)
+        {
+            var azure = GetAzureClient();
+            
+            DeploymentInner deploymentParam = new DeploymentInner()
+            {
+                Location = "westus",
+                Properties = new DeploymentProperties()
+                {
+                    Mode = DeploymentMode.Incremental,
+                    Template = Newtonsoft.Json.JsonConvert.DeserializeObject(template),
+                    Parameters = Newtonsoft.Json.JsonConvert.DeserializeObject("{}")
+                }
+            };
+
+            var deployment = azure.Deployments.Inner.BeginCreateOrUpdateAtSubscriptionScopeAsync(deploymentName, deploymentParam).Result;
+
+            //var test = azure.Deployments.GetById(deployment.Id);
+
+            var test2 = await azure.Deployments.Inner.GetAtSubscriptionScopeWithHttpMessagesAsync(deployment.Name);
+            var azureFluentSubscriptionDeployment = azure.Deployments.Inner.GetAtSubscriptionScopeAsync(deployment.Name).Result;
+            var k = azure.Deployments.Inner.GetAtSubscriptionScopeAsync(deployment.Name);
+            return azureFluentSubscriptionDeployment;
+
+
+        }
+
+        public async Task<DeploymentExtendedInner> NewSubscriptionDeployment(string template, string parameters, string deploymentName)
+        {
+            var azure = GetAzureClient();
+
+            DeploymentInner deploymentParam = new DeploymentInner()
+            {
+                Location = "westus",
+                Properties = new DeploymentProperties()
+                {
+                    Mode = DeploymentMode.Incremental,
+                    Template = JsonConvert.DeserializeObject(template),
+                    Parameters = JsonConvert.DeserializeObject(parameters),
+                    
+                }
+            };
+
+            var deployment = azure.Deployments.Inner.BeginCreateOrUpdateAtSubscriptionScopeAsync(deploymentName, deploymentParam).Result;
+
+            //var test = azure.Deployments.GetById(deployment.Id);
+
+            var test2 = await azure.Deployments.Inner.GetAtSubscriptionScopeWithHttpMessagesAsync(deployment.Name);
+            var azureFluentSubscriptionDeployment = azure.Deployments.Inner.GetAtSubscriptionScopeAsync(deployment.Name).Result;
+            var k = azure.Deployments.Inner.GetAtSubscriptionScopeAsync(deployment.Name);
+            return azureFluentSubscriptionDeployment;
+
+
+        }
+
+        public List<string> GetAvailableSubscriptions()
+        {
+            var azureAuthenticationClient = GetAzureClient();
+            var subList = azureAuthenticationClient.Subscriptions.List().Select(c => c.SubscriptionId).ToList();
+
+            return subList;
         }
 
         public async Task<List<IDeployment>> GetDeployments(CancellationToken cancellationToken)

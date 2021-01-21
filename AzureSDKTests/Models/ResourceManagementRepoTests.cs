@@ -26,10 +26,12 @@ namespace AzureSDK.Models.Tests
 
             //var deployments = azureClient.GetDeploymentAtResourceGroup("testingetag", cancellationToken:default).Result;
             //var mostRecent = deployments.OrderByDescending(x => x.Timestamp).FirstOrDefault();
-
+            //var errs = rmc.getErrors("testingetag", "testingEtag").Result;
             var deployment = rmc.GetDeployment("testingetag", "testingEtag").Result;
             Assert.AreEqual("Conflict", deployment.Properties.Error.Details.FirstOrDefault().Code);
 
+            
+            //var t = deployment.Properties.FirstOrDefault(x => x.Error.Details != null);
             //var opInfo = rmc.GetDeploymentOperations("testingetag", "testingEtag", deployment.Id);
 
             //var correlation = rmc.GetDeploymentOperations("testingetag", "testingEtag", deployment.Properties.CorrelationId);
@@ -41,6 +43,7 @@ namespace AzureSDK.Models.Tests
             //Assert.IsNotNull(err);
         }
 
+        
         [TestMethod()]
         public void GetDeploymentErrorWorksForSubscription()
         {
