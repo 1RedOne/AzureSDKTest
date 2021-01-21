@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Configuration;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -13,6 +14,15 @@ namespace AzureSDK.Models
         public string ClientSecret;
         public string TenantId;
         public string SubscriptionId;
+        public string OmsWorkSpaceID;
+        public string OmsSharedKey;
+        public string[] ConnectionStrings;
+
+        public AzureLoginFields(IConfiguration configuration)
+        {
+            configuration.GetSection("LoginInfo").Get<AzureLoginFields>();
+            //return newField;
+        }
 
     }
 }

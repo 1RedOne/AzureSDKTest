@@ -1,0 +1,321 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.1",
+  "parameters": {
+    "workspaces_testingetag_name": {
+      "defaultValue": "testingetag",
+      "type": "String"
+    },
+    "profile": {
+      "type": "string"
+    },
+    "environmentResourceGroup": {
+      "type": "string"
+    },
+    "environmentResourceGroupLocation": {
+      "type": "string"
+    },
+    "mcasIntegrationEnabled": {
+      "type": "bool",
+      "defaultValue": true,
+      "allowedValues": [
+        true,
+        false
+      ],
+      "metadata": {
+        "description": "Allow Microsoft Cloud App Security to access my data"
+      }
+    },
+    "wdatpIntegrationEnabled": {
+      "type": "bool",
+      "defaultValue": true,
+      "allowedValues": [
+        true,
+        false
+      ],
+      "metadata": {
+        "description": "Allow Windows Defender Advance Threat Protection to access my data"
+      }
+    },
+
+    "automationDeployName": {
+      "type": "string",
+      "defaultValue": "[concat('AM.Automation.', utcNow('yyyyMMddHHmmss'))]"
+    },
+    "dependenciesDeployName": {
+      "type": "string",
+      "defaultValue": "[concat('AM.Dependencies.', utcNow('yyyyMMddHHmmss'))]"
+    },
+    "policyAssignmentDeployName": {
+      "type": "string",
+      "defaultValue": "[concat('AM.PolicyAssignments.', utcNow('yyyyMMddHHmmss'))]"
+    },
+    "automationPolicyAssignmentDeployName": {
+      "type": "string",
+      "defaultValue": "[concat('AM.Automation.PolicyAssignments.', utcNow('yyyyMMddHHmmss'))]"
+    }
+  },
+  "variables": {
+    "scopeConfigurationName": "MicrosoftDefaultScopeConfig-Updates",
+    "configurationScopeKind": "SearchComputerGroup",
+    "configurationScopeInclude": "Updates__MicrosoftDefaultComputerGroup",
+    "automationPolicyName": "Automanage automation account policy",
+    "automationPolicyDisplayName": "Automanage automation account policy",
+    "automationPolicyDescription": "Monitors the Automation Account and ensures the location and name don't change",
+    "workspacePolicyName": "Automanage workspace policy",
+    "workspacePolicyDisplayName": "Automanage workspace policy",
+    "workspacePolicyDescription": "Monitors workspace and ensures the automation account is linked",
+    "solutionPolicyName": "Automanage solutions policy",
+    "solutionPolicyDisplayName": "Automanage solutions policy",
+    "solutionPolicyDescription": "Monitors the Solution and ensures the workspace is linked",
+    "workspacePolicyAssignment": "Automanage workspace assignment",
+    "automationPolicyAssignment": "Automanage automation account assignment",
+    "updatesSolutionPolicyAssignment": "Automanage Updates solution assignment",
+    "changeTrackingSolutionPolicyAssignment": "Automanage ChangeTracking solution assignment",
+    "VMInsightsSolutionPolicyAssignment": "Automanage VMInsights solution assignment",
+    "prodProfileName": "PROD"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2020-10-01",
+      "name": "[parameters('workspaces_testingetag_name')]",
+      "resourceGroup": "testingetag",
+      "location": "eastus",
+      "properties": {
+        "sku": {
+          "name": "pergb2018"
+        },
+        "resourceGroup": "testingetag",
+        "retentionInDays": 30,
+        "workspaceCapping": {
+          "dailyQuotaGb": -1
+        },
+        "publicNetworkAccessForIngestion": "Enabled",
+        "publicNetworkAccessForQuery": "Enabled"
+      }
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/savedSearches",
+      "apiVersion": "2020-08-01",
+      "name": "[concat(parameters('workspaces_testingetag_name'), '/84f9c913-878e-45f1-b12f-314c0d2e8deb')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaces_testingetag_name'))]"
+      ],
+      "properties": {
+        "Etag": "*",
+        "Category": "insightinfo",
+        "DisplayName": "etagSearch",
+        "Query": "Heartbeat | where Computer in~ (\"localtest02\",\"localtest01\") or VMUUID in~ (\"6d6d6c8d-4ac7-4d56-8b3f-a89c662e1817\") | distinct Computer\n",
+        "Tags": [
+          {
+            "Name": "Group",
+            "Value": "Computer"
+          }
+        ],
+        "FunctionAlias": "etagSearch",
+        "Version": 2
+      }
+    },
+    {
+      "apiVersion": "2020-10-01",
+      "type": "Microsoft.Resources/deployments",
+      "name": "AMDeploy.123",
+      "resourceGroup": "testingetag",
+      "properties": {
+        "mode": "Incremental",
+        "template": {
+          "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "resources": [
+            {
+              "type": "Microsoft.Automation/automationAccounts",
+              "apiVersion": "2020-01-13-preview",
+              "name": "foxAutomate",
+              "location": "East US",
+              "properties": {
+                "sku": {
+                  "name": "Basic"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "apiVersion": "2018-05-01",
+      "type": "Microsoft.Resources/deployments",
+      "name": "AMDependencies",
+      "resourceGroup": "testingetag",
+      "properties": {
+        "mode": "Incremental",
+        "template": {
+          "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "resources": [
+            {
+              "type": "Microsoft.OperationalInsights/workspaces/configurationScopes",
+              "apiVersion": "2020-10-01",
+              "name": "[concat('testingetag', '/', variables('scopeConfigurationName'))]",
+              "location": "eastus",
+              "kind": "[variables('configurationScopeKind')]",
+              "properties": {
+                "Include": "[variables('configurationScopeInclude')]"
+              },
+              "dependsOn": [
+                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/testingetag/providers/Microsoft.OperationalInsights/workspaces/', 'testingetag')]"
+              ]
+            },
+            {
+              "type": "Microsoft.OperationsManagement/solutions",
+              "apiVersion": "2015-11-01-preview",
+              "name": "[concat('Updates(', 'testingetag', ')')]",
+              "location": "eastus",
+              "plan": {
+                "name": "[concat('Updates(', 'testingetag', ')')]",
+                "product": "OMSGallery/Updates",
+                "promotionCode": "",
+                "publisher": "Microsoft"
+              },
+              "properties": {
+                "workspaceResourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/','testingetag','/providers/Microsoft.OperationalInsights/workspaces/', 'testingetag')]",
+                "configurations": {
+                  "Name": "SolutionTargeting",
+                  "Value": "[variables('scopeConfigurationName')]"
+                }
+              },
+              "dependsOn": [
+                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/','testingetag','/providers/Microsoft.OperationalInsights/workspaces/', 'testingetag')]"
+              ]
+            },
+            {
+              "type": "Microsoft.OperationsManagement/solutions",
+              "apiVersion": "2015-11-01-preview",
+              "name": "[concat('ChangeTracking(', 'testingetag', ')')]",
+              "location": "eastus",
+              "plan": {
+                "name": "[concat('ChangeTracking(', 'testingetag', ')')]",
+                "product": "OMSGallery/ChangeTracking",
+                "promotionCode": "",
+                "publisher": "Microsoft"
+              },
+              "properties": {
+                "workspaceResourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/','testingetag','/providers/Microsoft.OperationalInsights/workspaces/', 'testingetag')]",
+                "configurations": {
+                  "Name": "SolutionTargeting",
+                  "Value": "[variables('scopeConfigurationName')]"
+                }
+              },
+              "dependsOn": [
+                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/','testingetag','/providers/Microsoft.OperationalInsights/workspaces/', 'testingetag')]"
+              ]
+            },
+            {
+              "type": "Microsoft.OperationsManagement/solutions",
+              "apiVersion": "2015-11-01-preview",
+              "name": "[concat('VMInsights', '(', 'testingetag',')')]",
+              "location": "eastus",
+              "plan": {
+                "name": "[concat('VMInsights', '(','testingetag',')')]",
+                "publisher": "Microsoft",
+                "product": "OMSGallery/VMInsights",
+                "promotionCode": ""
+              },
+              "properties": {
+                "workspaceResourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/','testingetag','/providers/Microsoft.OperationalInsights/workspaces/', 'testingetag')]"
+              },
+              "dependsOn": [
+                "[concat('/subscriptions/',subscription().subscriptionid,'/resourceGroups/','testingetag','/providers/Microsoft.OperationalInsights/workspaces/', 'testingetag')]"
+              ]
+            },
+            {
+              "type": "Microsoft.OperationalInsights/workspaces/linkedServices",
+              "apiVersion": "2015-11-01-preview",
+              "name": "[concat('testingetag', '/' , 'Automation')]",
+              "location": "eastus",
+              "properties": {
+                "resourceId": "[concat('/subscriptions/cdd53a71-7d81-493d-bce6-224fec7223a9','/resourceGroups/','testingetag','/providers/Microsoft.Automation/automationAccounts/foxAutomate')]"
+              },
+              "dependsOn": [
+                "[concat('/subscriptions/cdd53a71-7d81-493d-bce6-224fec7223a9/resourceGroups/','testingetag','/providers/Microsoft.OperationalInsights/workspaces/', 'testingetag')]",
+                "[concat('/subscriptions/cdd53a71-7d81-493d-bce6-224fec7223a9/resourceGroups/','testingetag','/providers/Microsoft.OperationalInsights/workspaces/', 'testingetag')]"
+              ]
+            },
+            {
+              "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+              "apiVersion": "2015-11-01-preview",
+              "name": "[Concat('testingetag', '/ChangeTrackingDataTypeConfiguration_Software')]",
+              "location": "eastus",
+              "kind": "ChangeTrackingDataTypeConfiguration",
+              "properties": {
+                "DataTypeId": "Software",
+                "Enabled": "true"
+              },
+              "dependsOn": [
+                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/','testingetag','/providers/Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', 'testingetag', ')'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+              "apiVersion": "2015-11-01-preview",
+              "name": "[Concat('testingetag', '/ChangeTrackingDataTypeConfiguration_WindowsServices')]",
+              "location": "eastus",
+              "kind": "ChangeTrackingDataTypeConfiguration",
+              "properties": {
+                "DataTypeId": "WindowsServices",
+                "Enabled": "true"
+              },
+              "dependsOn": [
+                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/','testingetag','/providers/Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', 'testingetag', ')'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+              "apiVersion": "2015-11-01-preview",
+              "name": "[Concat('testingetag', '/ChangeTrackingDataTypeConfiguration_Daemons')]",
+              "location": "eastus",
+              "kind": "ChangeTrackingDataTypeConfiguration",
+              "properties": {
+                "DataTypeId": "Daemons",
+                "Enabled": "true"
+              },
+              "dependsOn": [
+                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/','testingetag','/providers/Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', 'testingetag', ')'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+              "apiVersion": "2015-11-01-preview",
+              "name": "[Concat('testingetag', '/ChangeTrackingDataTypeConfiguration_Files')]",
+              "location": "eastus",
+              "kind": "ChangeTrackingDataTypeConfiguration",
+              "properties": {
+                "DataTypeId": "Files",
+                "Enabled": "true"
+              },
+              "dependsOn": [
+                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/','testingetag','/providers/Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', 'testingetag', ')'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+              "apiVersion": "2015-11-01-preview",
+              "name": "[Concat('testingetag', '/ChangeTrackingDataTypeConfiguration_Registry')]",
+              "location": "eastus",
+              "kind": "ChangeTrackingDataTypeConfiguration",
+              "properties": {
+                "DataTypeId": "Registry",
+                "Enabled": "true"
+              },
+              "dependsOn": [
+                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/','testingetag','/providers/Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', 'testingetag', ')'))]"
+              ]
+            }
+          ]
+        }
+      },
+      "dependsOn":""
+    }
+  ]
+}

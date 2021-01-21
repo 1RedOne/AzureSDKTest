@@ -1,0 +1,610 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+    "contentVersion": "1.0.0.1",
+    "parameters": {
+        "profile": {
+            "type": "String"
+        },
+        "environmentResourceGroup": {
+            "type": "String"
+        },
+        "environmentResourceGroupLocation": {
+            "type": "String"
+        },
+        "workspace": {
+            "type": "Object"
+        },
+        "mcasIntegrationEnabled": {
+            "defaultValue": true,
+            "allowedValues": [
+                true,
+                false
+            ],
+            "type": "Bool",
+            "metadata": {
+                "description": "Allow Microsoft Cloud App Security to access my data"
+            }
+        },
+        "wdatpIntegrationEnabled": {
+            "defaultValue": true,
+            "allowedValues": [
+                true,
+                false
+            ],
+            "type": "Bool",
+            "metadata": {
+                "description": "Allow Windows Defender Advance Threat Protection to access my data"
+            }
+        },
+        "automationAccount": {
+            "type": "Object"
+        },
+        "automationDeployName": {
+            "defaultValue": "[concat('AM.Automation.', utcNow('yyyyMMddHHmmss'))]",
+            "type": "String"
+        },
+        "dependenciesDeployName": {
+            "defaultValue": "[concat('AM.Dependencies.', utcNow('yyyyMMddHHmmss'))]",
+            "type": "String"
+        },
+        "policyAssignmentDeployName": {
+            "defaultValue": "[concat('AM.PolicyAssignments.', utcNow('yyyyMMddHHmmss'))]",
+            "type": "String"
+        },
+        "automationPolicyAssignmentDeployName": {
+            "defaultValue": "[concat('AM.Automation.PolicyAssignments.', utcNow('yyyyMMddHHmmss'))]",
+            "type": "String"
+        }
+    },
+    "variables": {
+        "scopeConfigurationName": "MicrosoftDefaultScopeConfig-Updates",
+        "configurationScopeKind": "SearchComputerGroup",
+        "configurationScopeInclude": "Updates__MicrosoftDefaultComputerGroup",
+        "automationPolicyName": "Automanage automation account policy",
+        "automationPolicyDisplayName": "Automanage automation account policy",
+        "automationPolicyDescription": "Monitors the Automation Account and ensures the location and name don't change",
+        "workspacePolicyName": "Automanage workspace policy",
+        "workspacePolicyDisplayName": "Automanage workspace policy",
+        "workspacePolicyDescription": "Monitors workspace and ensures the automation account is linked",
+        "solutionPolicyName": "Automanage solutions policy",
+        "solutionPolicyDisplayName": "Automanage solutions policy",
+        "solutionPolicyDescription": "Monitors the Solution and ensures the workspace is linked",
+        "workspacePolicyAssignment": "Automanage workspace assignment",
+        "automationPolicyAssignment": "Automanage automation account assignment",
+        "updatesSolutionPolicyAssignment": "Automanage Updates solution assignment",
+        "changeTrackingSolutionPolicyAssignment": "Automanage ChangeTracking solution assignment",
+        "VMInsightsSolutionPolicyAssignment": "Automanage VMInsights solution assignment",
+        "prodProfileName": "PROD"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2017-05-10",
+            "name": "[parameters('automationDeployName')]",
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                        {
+                            "type": "Microsoft.Automation/automationAccounts",
+                            "apiVersion": "2015-10-31",
+                            "name": "[parameters('automationAccount').name]",
+                            "location": "[parameters('automationAccount').location]",
+                            "properties": {
+                                "sku": {
+                                    "name": "[parameters('automationAccount').sku]"
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "resourceGroup": "[parameters('automationAccount').resourcegroup]",
+            "condition": "[equals(parameters('automationAccount').subscriptionid, subscription().subscriptionId)]"
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2017-05-10",
+            "name": "[parameters('dependenciesDeployName')]",
+            "dependsOn": [
+                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('automationAccount').resourcegroup,'/providers/Microsoft.Resources/deployments/', parameters('automationDeployName'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                        {
+                            "type": "Microsoft.OperationalInsights/workspaces",
+                            "apiVersion": "2015-11-01-preview",
+                            "name": "[parameters('workspace').name]",
+                            "location": "[parameters('workspace').location]"
+                        },
+                        {
+                            "type": "Microsoft.OperationalInsights/workspaces/configurationScopes",
+                            "apiVersion": "2015-11-01-preview",
+                            "name": "[concat(parameters('workspace').name, '/', variables('scopeConfigurationName'))]",
+                            "location": "[parameters('workspace').location]",
+                            "kind": "[variables('configurationScopeKind')]",
+                            "properties": {
+                                "Include": "[variables('configurationScopeInclude')]"
+                            },
+                            "dependsOn": [
+                                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.OperationalInsights/workspaces/', parameters('workspace').name)]"
+                            ]
+                        },
+                        {
+                            "type": "Microsoft.OperationsManagement/solutions",
+                            "apiVersion": "2015-11-01-preview",
+                            "name": "[concat('Updates(', parameters('workspace').name, ')')]",
+                            "location": "[parameters('workspace').location]",
+                            "plan": {
+                                "name": "[concat('Updates(', parameters('workspace').name, ')')]",
+                                "product": "OMSGallery/Updates",
+                                "promotionCode": "",
+                                "publisher": "Microsoft"
+                            },
+                            "properties": {
+                                "workspaceResourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.OperationalInsights/workspaces/', parameters('workspace').name)]",
+                                "configurations": {
+                                    "Name": "SolutionTargeting",
+                                    "Value": "[variables('scopeConfigurationName')]"
+                                }
+                            },
+                            "dependsOn": [
+                                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.OperationalInsights/workspaces/', parameters('workspace').name)]"
+                            ]
+                        },
+                      {
+                        "type": "Microsoft.OperationsManagement/solutions",
+                        "apiVersion": "2015-11-01-preview",
+                        "name": "[concat('ChangeTracking(', parameters('workspace').name, ')')]",
+                        "location": "[parameters('workspace').location]",
+                        "plan": {
+                          "name": "[concat('ChangeTracking(', parameters('workspace').name, ')')]",
+                          "product": "OMSGallery/ChangeTracking",
+                          "promotionCode": "",
+                          "publisher": "Microsoft"
+                        },
+                        "properties": {
+                          "workspaceResourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.OperationalInsights/workspaces/', parameters('workspace').name)]",
+                          "configurations": {
+                            "Name": "SolutionTargeting",
+                            "Value": "[variables('scopeConfigurationName')]"
+                          }
+                        },
+                        "dependsOn": [
+                          "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.OperationalInsights/workspaces/', parameters('workspace').name)]"
+                        ]
+                      },
+                      {
+                        "type": "Microsoft.OperationalInsights/workspaces/savedSearches",
+                        "apiVersion": "2020-08-01",
+                        "name": "testingetag, '/84f9c913-878e-45f1-b12f-314c0d2e8deb')]",
+                        "dependsOn": [
+                          "[resourceId('Microsoft.OperationalInsights/workspaces', 'testingetag')]"
+                        ],
+                        "properties": {
+                          "Etag": "*",
+                          "Category": "insightinfo",
+                          "DisplayName": "etagSearch",
+                          "Query": "Heartbeat | where Computer in~ (\"localtest02\",\"localtest01\") or VMUUID in~ (\"6d6d6c8d-4ac7-4d56-8b3f-a89c662e1817\") | distinct Computer\n",
+                          "Tags": [
+                            {
+                              "Name": "Group",
+                              "Value": "Computer"
+                            }
+                          ],
+                          "FunctionAlias": "etagSearch",
+                          "Version": 2
+                        }
+                      },
+                        {
+                            "condition": "[equals(parameters('profile'),variables('prodProfileName'))]",
+                            "type": "Microsoft.OperationsManagement/solutions",
+                            "apiVersion": "2015-11-01-preview",
+                            "name": "[concat('VMInsights', '(', parameters('workspace').name,')')]",
+                            "location": "[parameters('workspace').location]",
+                            "plan": {
+                                "name": "[concat('VMInsights', '(',parameters('workspace').name,')')]",
+                                "publisher": "Microsoft",
+                                "product": "OMSGallery/VMInsights",
+                                "promotionCode": ""
+                            },
+                            "properties": {
+                                "workspaceResourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.OperationalInsights/workspaces/', parameters('workspace').name)]"
+                            },
+                            "dependsOn": [
+                                "[concat('/subscriptions/',subscription().subscriptionid,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.OperationalInsights/workspaces/', parameters('workspace').name)]"
+                            ]
+                        },
+                        {
+                            "type": "Microsoft.OperationalInsights/workspaces/linkedServices",
+                            "apiVersion": "2015-11-01-preview",
+                            "name": "[concat(parameters('workspace').name, '/' , 'Automation')]",
+                            "location": "[parameters('workspace').location]",
+                            "properties": {
+                                "resourceId": "[concat('/subscriptions/',parameters('automationAccount').subscriptionId,'/resourceGroups/',parameters('automationAccount').resourcegroup,'/providers/Microsoft.Automation/automationAccounts/', parameters('automationAccount').name)]"
+                            },
+                            "dependsOn": [
+                                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.OperationalInsights/workspaces/', parameters('workspace').name)]"
+                            ]
+                        },
+                        {
+                            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+                            "apiVersion": "2015-11-01-preview",
+                            "name": "[Concat(parameters('workspace').name, '/ChangeTrackingDataTypeConfiguration_Software')]",
+                            "location": "[parameters('workspace').location]",
+                            "kind": "ChangeTrackingDataTypeConfiguration",
+                            "properties": {
+                                "DataTypeId": "Software",
+                                "Enabled": "true"
+                            },
+                            "dependsOn": [
+                                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('workspace').name, ')'))]"
+                            ]
+                        },
+                        {
+                            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+                            "apiVersion": "2015-11-01-preview",
+                            "name": "[Concat(parameters('workspace').name, '/ChangeTrackingDataTypeConfiguration_WindowsServices')]",
+                            "location": "[parameters('workspace').location]",
+                            "kind": "ChangeTrackingDataTypeConfiguration",
+                            "properties": {
+                                "DataTypeId": "WindowsServices",
+                                "Enabled": "true"
+                            },
+                            "dependsOn": [
+                                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('workspace').name, ')'))]"
+                            ]
+                        },
+                        {
+                            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+                            "apiVersion": "2015-11-01-preview",
+                            "name": "[Concat(parameters('workspace').name, '/ChangeTrackingDataTypeConfiguration_Daemons')]",
+                            "location": "[parameters('workspace').location]",
+                            "kind": "ChangeTrackingDataTypeConfiguration",
+                            "properties": {
+                                "DataTypeId": "Daemons",
+                                "Enabled": "true"
+                            },
+                            "dependsOn": [
+                                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('workspace').name, ')'))]"
+                            ]
+                        },
+                        {
+                            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+                            "apiVersion": "2015-11-01-preview",
+                            "name": "[Concat(parameters('workspace').name, '/ChangeTrackingDataTypeConfiguration_Files')]",
+                            "location": "[parameters('workspace').location]",
+                            "kind": "ChangeTrackingDataTypeConfiguration",
+                            "properties": {
+                                "DataTypeId": "Files",
+                                "Enabled": "true"
+                            },
+                            "dependsOn": [
+                                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('workspace').name, ')'))]"
+                            ]
+                        },
+                        {
+                            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+                            "apiVersion": "2015-11-01-preview",
+                            "name": "[Concat(parameters('workspace').name, '/ChangeTrackingDataTypeConfiguration_Registry')]",
+                            "location": "[parameters('workspace').location]",
+                            "kind": "ChangeTrackingDataTypeConfiguration",
+                            "properties": {
+                                "DataTypeId": "Registry",
+                                "Enabled": "true"
+                            },
+                            "dependsOn": [
+                                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('workspace').name, ')'))]"
+                            ]
+                        }
+                    ]
+                }
+            },
+            "resourceGroup": "[parameters('environmentResourceGroup')]"
+        },
+        {
+            "type": "Microsoft.Security/settings",
+            "apiVersion": "2019-01-01",
+            "name": "MCAS",
+            "dependsOn": [
+                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.Resources/deployments/', parameters('dependenciesDeployName'))]"
+            ],
+            "kind": "DataExportSettings",
+            "properties": {
+                "enabled": "[parameters('mcasIntegrationEnabled')]"
+            }
+        },
+        {
+            "type": "Microsoft.Security/settings",
+            "apiVersion": "2019-01-01",
+            "name": "WDATP",
+            "dependsOn": [
+                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.Resources/deployments/', parameters('dependenciesDeployName'))]"
+            ],
+            "kind": "DataExportSettings",
+            "properties": {
+                "enabled": "[parameters('wdatpIntegrationEnabled')]"
+            }
+        },
+        {
+            "type": "Microsoft.Authorization/policyDefinitions",
+            "apiVersion": "2019-09-01",
+            "name": "[variables('automationPolicyName')]",
+            "dependsOn": [
+                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.Resources/deployments/', parameters('dependenciesDeployName'))]"
+            ],
+            "properties": {
+                "displayName": "[variables('automationPolicyDisplayName')]",
+                "policyType": "Custom",
+                "description": "[variables('automationPolicyDescription')]",
+                "metadata": {
+                    "category": "General"
+                },
+                "parameters": {
+                    "automationLocation": {
+                        "type": "String",
+                        "metadata": {
+                            "displayName": "Automation Location",
+                            "description": "Name of the location"
+                        }
+                    },
+                    "automationName": {
+                        "type": "String",
+                        "metadata": {
+                            "displayName": "Automation Name",
+                            "description": "Name of the Automation Account"
+                        }
+                    }
+                },
+                "mode": "All",
+                "policyRule": {
+                    "if": {
+                        "allOf": [
+                            {
+                                "field": "type",
+                                "equals": "Microsoft.Automation/automationAccounts"
+                            },
+                            {
+                                "anyOf": [
+                                    {
+                                        "field": "location",
+                                        "notEquals": "[[parameters('automationLocation')]"
+                                    },
+                                    {
+                                        "field": "name",
+                                        "notEquals": "[[parameters('automationName')]"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    "then": {
+                        "effect": "audit"
+                    }
+                }
+            },
+            "condition": "[equals(parameters('automationAccount').subscriptionid, subscription().subscriptionId)]"
+        },
+        {
+            "type": "Microsoft.Authorization/policyDefinitions",
+            "apiVersion": "2019-09-01",
+            "name": "[variables('workspacePolicyName')]",
+            "dependsOn": [
+                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.Resources/deployments/', parameters('dependenciesDeployName'))]"
+            ],
+            "properties": {
+                "displayName": "[variables('workspacePolicyDisplayName')]",
+                "policyType": "Custom",
+                "description": "[variables('workspacePolicyDescription')]",
+                "metadata": {
+                    "category": "General"
+                },
+                "parameters": {
+                    "automationAccountId": {
+                        "type": "String",
+                        "metadata": {
+                            "displayName": "AutomationId",
+                            "description": "Automation Account resource Id linked to the workspace"
+                        }
+                    }
+                },
+                "mode": "All",
+                "policyRule": {
+                    "if": {
+                        "anyOf": [
+                            {
+                                "allOf": [
+                                    {
+                                        "field": "type",
+                                        "equals": "Microsoft.OperationalInsights/workspaces/linkedservices"
+                                    },
+                                    {
+                                        "anyOf": [
+                                            {
+                                                "field": "microsoft.operationalinsights/workspaces/linkedservices/resourceId",
+                                                "notEquals": "[[parameters('automationAccountId')]"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    "then": {
+                        "effect": "audit"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Authorization/policyDefinitions",
+            "apiVersion": "2019-09-01",
+            "name": "[variables('solutionPolicyName')]",
+            "dependsOn": [
+                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.Resources/deployments/', parameters('dependenciesDeployName'))]"
+            ],
+            "properties": {
+                "displayName": "[variables('solutionPolicyDisplayName')]",
+                "policyType": "Custom",
+                "description": "[variables('solutionPolicyDescription')]",
+                "metadata": {
+                    "category": "General"
+                },
+                "parameters": {
+                    "workspaceResourceId": {
+                        "type": "String",
+                        "metadata": {
+                            "displayName": "WorkspaceId",
+                            "description": "Workspace resource Id linked to this solution"
+                        }
+                    }
+                },
+                "mode": "All",
+                "policyRule": {
+                    "if": {
+                        "anyOf": [
+                            {
+                                "allOf": [
+                                    {
+                                        "field": "type",
+                                        "equals": "Microsoft.OperationsManagement/solutions"
+                                    },
+                                    {
+                                        "anyOf": [
+                                            {
+                                                "field": "Microsoft.OperationsManagement/solutions/workspaceResourceId",
+                                                "notEquals": "[[parameters('workspaceResourceId')]"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    "then": {
+                        "effect": "audit"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2017-05-10",
+            "name": "[parameters('policyAssignmentDeployName')]",
+            "dependsOn": [
+                "[concat('/subscriptions/',subscription().subscriptionId,'/providers/Microsoft.Authorization/policyDefinitions/',variables('workspacePolicyName'))]",
+                "[concat('/subscriptions/',subscription().subscriptionId,'/providers/Microsoft.Authorization/policyDefinitions/',variables('solutionPolicyName'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                        {
+                            "type": "Microsoft.OperationalInsights/workspaces/providers/policyAssignments",
+                            "name": "[concat(parameters('workspace').name,'/Microsoft.Authorization/',variables('workspacePolicyAssignment'))]",
+                            "apiVersion": "2019-09-01",
+                            "properties": {
+                                "scope": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.OperationalInsights/workspaces/', parameters('workspace').name)]",
+                                "policyDefinitionId": "[concat('/subscriptions/',subscription().subscriptionId,'/providers/Microsoft.Authorization/policyDefinitions/',variables('workspacePolicyName'))]",
+                                "parameters": {
+                                    "automationAccountId": {
+                                        "Value": "[concat('/subscriptions/',parameters('automationAccount').subscriptionId,'/resourceGroups/',parameters('automationAccount').resourcegroup,'/providers/Microsoft.Automation/automationAccounts/', parameters('automationAccount').name)]"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "type": "Microsoft.OperationsManagement/solutions/providers/policyAssignments",
+                            "name": "[concat('Updates(',parameters('workspace').name,')/Microsoft.Authorization/',variables('updatesSolutionPolicyAssignment'))]",
+                            "apiVersion": "2019-09-01",
+                            "properties": {
+                                "scope": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.OperationsManagement/solutions/Updates(', parameters('workspace').name,')')]",
+                                "policyDefinitionId": "[concat('/subscriptions/',subscription().subscriptionId,'/providers/Microsoft.Authorization/policyDefinitions/',variables('solutionPolicyName'))]",
+                                "parameters": {
+                                    "workspaceResourceId": {
+                                        "Value": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.OperationalInsights/workspaces/', parameters('workspace').name)]"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "type": "Microsoft.OperationsManagement/solutions/providers/policyAssignments",
+                            "name": "[concat('ChangeTracking(',parameters('workspace').name,')/Microsoft.Authorization/',variables('changeTrackingSolutionPolicyAssignment'))]",
+                            "apiVersion": "2019-09-01",
+                            "properties": {
+                                "scope": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.OperationsManagement/solutions/ChangeTracking(', parameters('workspace').name,')')]",
+                                "policyDefinitionId": "[concat('/subscriptions/',subscription().subscriptionId,'/providers/Microsoft.Authorization/policyDefinitions/',variables('solutionPolicyName'))]",
+                                "parameters": {
+                                    "workspaceResourceId": {
+                                        "Value": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.OperationalInsights/workspaces/', parameters('workspace').name)]"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "condition": "[equals(parameters('profile'),variables('prodProfileName'))]",
+                            "type": "Microsoft.OperationsManagement/solutions/providers/policyAssignments",
+                            "name": "[concat('VMInsights(',parameters('workspace').name,')/Microsoft.Authorization/',variables('VMInsightsSolutionPolicyAssignment'))]",
+                            "apiVersion": "2019-09-01",
+                            "properties": {
+                                "scope": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.OperationsManagement/solutions/VMInsights(', parameters('workspace').name,')')]",
+                                "policyDefinitionId": "[concat('/subscriptions/',subscription().subscriptionId,'/providers/Microsoft.Authorization/policyDefinitions/',variables('solutionPolicyName'))]",
+                                "parameters": {
+                                    "workspaceResourceId": {
+                                        "Value": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('environmentResourceGroup'),'/providers/Microsoft.OperationalInsights/workspaces/', parameters('workspace').name)]"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "resourceGroup": "[parameters('environmentResourceGroup')]"
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2017-05-10",
+            "name": "[parameters('automationPolicyAssignmentDeployName')]",
+            "dependsOn": [
+                "[concat('/subscriptions/',subscription().subscriptionId,'/providers/Microsoft.Authorization/policyDefinitions/',variables('automationPolicyName'))]",
+                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('automationAccount').resourcegroup,'/providers/Microsoft.Resources/deployments/', parameters('automationDeployName'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                        {
+                            "condition": "[equals(parameters('automationAccount').subscriptionid, subscription().subscriptionId)]",
+                            "type": "Microsoft.Automation/automationAccounts/providers/policyAssignments",
+                            "name": "[concat(parameters('automationAccount').name,'/Microsoft.Authorization/',variables('automationPolicyAssignment'))]",
+                            "apiVersion": "2019-09-01",
+                            "properties": {
+                                "scope": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('automationAccount').resourcegroup,'/providers/Microsoft.Automation/automationAccounts/', parameters('automationAccount').name)]",
+                                "policyDefinitionId": "[concat('/subscriptions/',subscription().subscriptionId,'/providers/Microsoft.Authorization/policyDefinitions/',variables('AutomationPolicyName'))]",
+                                "parameters": {
+                                    "automationLocation": {
+                                        "value": "[parameters('automationAccount').location]"
+                                    },
+                                    "automationName": {
+                                        "Value": "[parameters('automationAccount').name]"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "resourceGroup": "[parameters('automationAccount').resourcegroup]"
+        }
+    ]
+}

@@ -1,0 +1,43 @@
+﻿@using Microsoft.Azure.Management.Automanage.Models;
+@model ConfigurationProfileAssignment
+@{
+    ViewData["Title"] = "AutomanageClientTest - Create Assignment";
+}
+
+<h1>New Assignment</h1>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Id)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Name)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Location)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Properties)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>        
+            <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => modelItem.Id)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => modelItem.Name)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => modelItem.Location)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => modelItem.Properties)
+                </td>                
+            </tr>        
+    </tbody>
+</table>

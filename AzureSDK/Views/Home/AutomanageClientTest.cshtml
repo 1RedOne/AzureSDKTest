@@ -1,0 +1,54 @@
+﻿@using Microsoft.Azure.Management.Automanage.Models;
+@model IEnumerable<Operation>
+@{
+    ViewData["Title"] = "AutomanageClientTest";
+}
+
+<h1>/SupportedOperations</h1>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Display)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Name)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.IsDataAction)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.StatusCode)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Display)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Name)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.IsDataAction)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.StatusCode)
+                </td>
+                <td>
+                    @Html.ActionLink("Details", "Details", new { name = item.Name })
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+
+<form action="AutomanageClientTestCreate" method="post">
+    <button name="Deploy2" class="btn-warning" value="Create New Assignment w/ AutoManagemenClient">Create New Assignment w/ AutoManagementClient</button>
+</form>

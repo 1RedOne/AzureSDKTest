@@ -1,4 +1,4 @@
-﻿{
+{
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.1",
   "parameters": {
@@ -8,14 +8,13 @@
     }
   },
   "variables": {},
-  "resources": [
+  "resources": [    
     {
       "type": "microsoft.operationalinsights/workspaces",
       "apiVersion": "2020-10-01",
       "name": "[parameters('workspaces_testingetag_name')]",
       "location": "eastus",
-      "properties": {
-        "provisioningState": "Succeeded",
+      "properties": {        
         "sku": {
           "name": "pergb2018"
         },
@@ -30,21 +29,22 @@
     {
       "type": "Microsoft.OperationalInsights/workspaces/savedSearches",
       "apiVersion": "2020-08-01",
-      "name": "[concat(parameters('workspaces_testingetag_name'), '/43f133ee-0b8b-4aa6-a44f-8eef2d1c70eb')]",
+      "name": "[concat(parameters('workspaces_testingetag_name'), '/84f9c913-878e-45f1-b12f-314c0d2e8deb')]",
       "dependsOn": [
         "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaces_testingetag_name'))]"
       ],
       "properties": {
+        "Etag": "*",
         "Category": "insightinfo",
-        "DisplayName": "insightInfo",
-        "Query": "InsightsMetrics \n| where TimeGenerated > ago(24h) \n| limit 10 | distinct Computer\n",
+        "DisplayName": "etagSearch",
+        "Query": "Heartbeat | where Computer in~ (\"localtest02\",\"localtest01\") or VMUUID in~ (\"6d6d6c8d-4ac7-4d56-8b3f-a89c662e1817\") | distinct Computer\n",
         "Tags": [
           {
             "Name": "Group",
             "Value": "Computer"
           }
         ],
-        "FunctionAlias": "insight",
+        "FunctionAlias": "etagSearch",
         "Version": 2
       }
     }
