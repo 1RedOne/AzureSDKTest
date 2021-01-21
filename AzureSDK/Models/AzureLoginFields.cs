@@ -16,6 +16,7 @@ namespace AzureSDK.Models
         public string SubscriptionId;
         public string OmsWorkSpaceID;
         public string OmsSharedKey;
+        public string[] ConnectionStrings;
 
         public AzureLoginFields(IConfiguration configuration)
         {
